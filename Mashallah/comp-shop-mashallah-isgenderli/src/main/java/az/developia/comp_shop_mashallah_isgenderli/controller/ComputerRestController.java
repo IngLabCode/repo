@@ -2,13 +2,14 @@ package az.developia.comp_shop_mashallah_isgenderli.controller;
 
 import az.developia.comp_shop_mashallah_isgenderli.DTO.ComputerDTO;
 import az.developia.comp_shop_mashallah_isgenderli.entity.Computer;
-import az.developia.comp_shop_mashallah_isgenderli.entity.UserEntity;
 import az.developia.comp_shop_mashallah_isgenderli.repository.ComputerRepository;
+import az.developia.comp_shop_mashallah_isgenderli.entity.User;
 import az.developia.comp_shop_mashallah_isgenderli.repository.UserRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,6 +31,7 @@ public class ComputerRestController {
 	@Autowired
 	private UserRepository userRepository;
 
+	@PreAuthorize("hasRole('USER')")
 	@GetMapping("/seller-computers")
 	public ResponseEntity<List<Computer>> getSellerComputers() {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -40,7 +42,7 @@ public class ComputerRestController {
 		}
 
 		String sellerUsername = authentication.getName();
-		UserEntity seller = userRepository.findByUsername(sellerUsername);
+		User seller = userRepository.findByFirstname(sellerUsername);
 
 		if (seller == null) {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
@@ -50,13 +52,13 @@ public class ComputerRestController {
 
 		return ResponseEntity.ok(computers);
 	}
-
+	@PreAuthorize("hasRole('USER')")
 	@PostMapping(path = "/add")
 	public ResponseEntity<String> add(@Valid @RequestBody ComputerDTO computer, BindingResult br) {
 
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		String sellerUsername = authentication.getName();
-		UserEntity seller = userRepository.findByUsername(sellerUsername);
+		User seller = userRepository.findByFirstname(sellerUsername);
 		System.out.println("Aktiv istifadəçi: " + sellerUsername);
 
 		if (seller == null) {
@@ -78,6 +80,7 @@ public class ComputerRestController {
 		return ResponseEntity.ok("Komputer uğurla əlavə edildi");
 	}
 
+	@PreAuthorize("hasRole('USER')")
 	@GetMapping(path = "/findAll")
 	public List<ComputerDTO> findAll() {
 		List<Computer> list = compRepository.findAll();
@@ -104,7 +107,7 @@ public class ComputerRestController {
 	public Computer findById(@PathVariable Long id) {
 		return compRepository.findById(id).get();
 	}
-
+	@PreAuthorize("hasRole('USER')")
 	@PutMapping(path = "/{id}")
 	public ResponseEntity<Computer> update(@PathVariable long id, @RequestBody Computer computer) {
 		Computer updateComp = compRepository.findById(id).get();
@@ -119,7 +122,7 @@ public class ComputerRestController {
 		compRepository.save(updateComp);
 		return ResponseEntity.ok(updateComp);
 	}
-
+	@PreAuthorize("hasRole('USER')")
 	@DeleteMapping(path = "/{id}")
 	public void deleteCompById(@PathVariable Long id) {
 		compRepository.deleteById(id);

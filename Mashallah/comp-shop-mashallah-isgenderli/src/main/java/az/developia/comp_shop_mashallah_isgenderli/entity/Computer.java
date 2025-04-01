@@ -11,11 +11,11 @@ import jakarta.validation.constraints.Size;
 
 public class Computer {
 
-    public UserEntity getSeller() {
+    public User getSeller() {
 		return seller;
 	}
 
-	public void setSeller(UserEntity seller) {
+	public void setSeller(User seller) {
 		this.seller = seller;
 	}
 
@@ -47,7 +47,7 @@ public class Computer {
 
     @ManyToOne
     @JoinColumn(name = "seller_id")
-    private UserEntity seller;
+    private User seller;
 
 	public Long getId() {
 		return id;

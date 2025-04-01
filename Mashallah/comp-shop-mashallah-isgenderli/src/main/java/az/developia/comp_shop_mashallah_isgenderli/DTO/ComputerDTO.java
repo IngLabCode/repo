@@ -1,7 +1,7 @@
 package az.developia.comp_shop_mashallah_isgenderli.DTO;
 
 
-import az.developia.comp_shop_mashallah_isgenderli.entity.UserEntity;
+import az.developia.comp_shop_mashallah_isgenderli.entity.User;
 
 public class ComputerDTO{
 	
@@ -23,14 +23,14 @@ public class ComputerDTO{
 		this.os = os;
 	}
 	private Long rom;
-	  private UserEntity seller;
+	  private User seller;
 	
 
 	
-	public UserEntity getSeller() {
+	public User getSeller() {
 		return seller;
 	}
-	public void setSeller(UserEntity seller) {
+	public void setSeller(User seller) {
 		this.seller = seller;
 	}
 	public Long getId() {

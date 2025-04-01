@@ -1,18 +1,17 @@
 package az.developia.comp_shop_mashallah_isgenderli.repository;
 
-
-import az.developia.comp_shop_mashallah_isgenderli.entity.UserEntity;
+import az.developia.comp_shop_mashallah_isgenderli.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserRepository extends JpaRepository<UserEntity, Long> {
+import java.util.Optional;
+
+public interface UserRepository extends JpaRepository<User, Integer> {
+
+  Optional<User> findByEmail(String email);
+  User findByFirstname(String sellerUsername);
 
 
 
 
-	UserEntity findByUsername(String sellerUsername);
-
-	
-
-	
-	
 }
+
