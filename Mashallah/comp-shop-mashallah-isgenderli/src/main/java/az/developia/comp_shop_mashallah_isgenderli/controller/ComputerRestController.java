@@ -6,11 +6,12 @@ import az.developia.comp_shop_mashallah_isgenderli.repository.ComputerRepository
 import az.developia.comp_shop_mashallah_isgenderli.entity.User;
 import az.developia.comp_shop_mashallah_isgenderli.repository.UserRepository;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
@@ -18,51 +19,52 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
-@RequestMapping(path = "/computers")
+@RequestMapping(path = "/computer")
 @CrossOrigin(origins = "*")
 public class ComputerRestController {
 
 	@Autowired
-	private AuthenticationManager authenticationManager;
+	private UserRepository userRepository;
+
 	@Autowired
 	private ComputerRepository compRepository;
-	@Autowired
-	private UserRepository userRepository;
+
 
 	@PreAuthorize("hasRole('USER')")
 	@GetMapping("/seller-computers")
 	public ResponseEntity<List<Computer>> getSellerComputers() {
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-		if (authentication == null || !authentication.isAuthenticated()
-				|| authentication.getPrincipal() instanceof String) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		if (auth == null || !auth.isAuthenticated()) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 		}
 
-		String sellerUsername = authentication.getName();
-		User seller = userRepository.findByFirstname(sellerUsername);
-
+		String sellerUsername = auth.getName();
+		User seller = userRepository.findByName(sellerUsername);
 		if (seller == null) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
 		}
 
 		List<Computer> computers = compRepository.findBySeller(seller);
-
 		return ResponseEntity.ok(computers);
 	}
-	@PreAuthorize("hasRole('USER')")
-	@PostMapping(path = "/add")
+
+	@PreAuthorize("hasRole('ROLE_USER')")
+	@PostMapping("/add")
 	public ResponseEntity<String> add(@Valid @RequestBody ComputerDTO computer, BindingResult br) {
 
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		String sellerUsername = authentication.getName();
-		User seller = userRepository.findByFirstname(sellerUsername);
-		System.out.println("Aktiv istifadəçi: " + sellerUsername);
+		if (br.hasErrors()) {
+			return ResponseEntity.badRequest().body("Invalid input data");
+		}
 
+		String sellerEmail = computer.getSellerEmail(); // Seller-in email-i DTO-dan alırıq
+
+
+		User seller = userRepository.findByName(sellerEmail); // Email əsasında istifadəçi tapılır
 		if (seller == null) {
-			throw new IllegalStateException("İstifadəçi tapılmadı");
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
 		}
 
 		Computer entity = new Computer();
@@ -71,24 +73,22 @@ public class ComputerRestController {
 		entity.setDescription(computer.getDescription());
 		entity.setModel(computer.getModel());
 		entity.setRam(computer.getRam());
+		entity.setRom(computer.getRom());
 		entity.setOs(computer.getOs());
+		entity.setPhoto(computer.getPhoto());
 		entity.setSeller(seller);
 
-		entity.setPhoto(computer.getPhoto());
-
 		compRepository.save(entity);
-		return ResponseEntity.ok("Komputer uğurla əlavə edildi");
+		return ResponseEntity.ok("Computer successfully added");
 	}
 
-	@PreAuthorize("hasRole('USER')")
-	@GetMapping(path = "/findAll")
+	@GetMapping("/findAll")
 	public List<ComputerDTO> findAll() {
-		List<Computer> list = compRepository.findAll();
-		List<ComputerDTO> dtos = new ArrayList<>();
+		List<Computer> computers = compRepository.findAll();
 
-		for (Computer entity : list) {
+		List<ComputerDTO> dtos = new ArrayList<>();
+		for (Computer entity : computers) {
 			ComputerDTO dto = new ComputerDTO();
-			dto.setId(entity.getId());
 			dto.setBrand(entity.getBrand());
 			dto.setModel(entity.getModel());
 			dto.setPrice(entity.getPrice());
@@ -96,36 +96,42 @@ public class ComputerRestController {
 			dto.setPhoto(entity.getPhoto());
 			dto.setRam(entity.getRam());
 			dto.setOs(entity.getOs());
-
 			dtos.add(dto);
 		}
 
 		return dtos;
 	}
-
-	@GetMapping(path = "/{id}")
-	public Computer findById(@PathVariable Long id) {
-		return compRepository.findById(id).get();
-	}
 	@PreAuthorize("hasRole('USER')")
-	@PutMapping(path = "/{id}")
+	@GetMapping("/findById/{id}")
+	public ResponseEntity<Computer> findById(@PathVariable Long id) {
+		return compRepository.findById(id)
+				.map(ResponseEntity::ok)
+				.orElseGet(() -> ResponseEntity.notFound().build());
+	}
+	@PreAuthorize("hasRole('ADMIN')")
+	@PutMapping("/update/{id}")
 	public ResponseEntity<Computer> update(@PathVariable long id, @RequestBody Computer computer) {
-		Computer updateComp = compRepository.findById(id).get();
-		updateComp.setBrand(computer.getBrand());
-		updateComp.setModel(computer.getModel());
-		updateComp.setPrice(computer.getPrice());
-		updateComp.setDescription(computer.getDescription());
-		updateComp.setPhoto(computer.getPhoto());
-		updateComp.setRam(computer.getRam());
-		updateComp.setOs(computer.getOs());
-
-		compRepository.save(updateComp);
-		return ResponseEntity.ok(updateComp);
+		return compRepository.findById(id)
+				.map(existing -> {
+					existing.setBrand(computer.getBrand());
+					existing.setModel(computer.getModel());
+					existing.setPrice(computer.getPrice());
+					existing.setDescription(computer.getDescription());
+					existing.setPhoto(computer.getPhoto());
+					existing.setRam(computer.getRam());
+					existing.setOs(computer.getOs());
+					return ResponseEntity.ok(compRepository.save(existing));
+				})
+				.orElseGet(() -> ResponseEntity.notFound().build());
 	}
-	@PreAuthorize("hasRole('USER')")
-	@DeleteMapping(path = "/{id}")
-	public void deleteCompById(@PathVariable Long id) {
+
+	@PreAuthorize("hasRole('ADMIN')")
+	@DeleteMapping("/deleteById/{id}")
+	public ResponseEntity<Void> deleteById(@PathVariable Long id) {
+		if (!compRepository.existsById(id)) {
+			return ResponseEntity.notFound().build();
+		}
 		compRepository.deleteById(id);
+		return ResponseEntity.noContent().build();
 	}
-
 }

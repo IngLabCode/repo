@@ -1,54 +1,31 @@
 package az.developia.comp_shop_mashallah_isgenderli.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import lombok.Data;
 
 @Entity
-@Table(name = "computer")
-
+@Data
 public class Computer {
 
-    public User getSeller() {
-		return seller;
-	}
-
-	public void setSeller(User seller) {
-		this.seller = seller;
-	}
-
 	@Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @NotNull
-    @Size(min = 1, max = 30, message = "Marka adı 1 ilə 30 simvol arasında olmalıdır!")
-    private String brand;
+	private String brand;
+	private String model;
+	private Double price;
+	private String description;
+	private String photo;
+	private Long ram;
+	private String os;
+	private Long rom;
 
-    private String model;
+	// Relation with User
+	@ManyToOne
+	@JoinColumn(name = "seller_id", referencedColumnName = "id")
+	private User seller;
 
-    @NotNull
-    @Min(value = 0, message = "Komputerin qiyməti sıfırdan kiçik ola bilməz!")
-    @Max(value = 100000, message = "Komputerin qiyməti 100000-dən çox ola bilməz!")
-    private Double price;
-
-    private String description;
-    private boolean isNew;
-
-    private String photo;
-    private Long ram;
-    private String cpu;
-    private String storage;
-    private String storageType;
-    private String os;
-    private String videoCard;
-
-    @ManyToOne
-    @JoinColumn(name = "seller_id")
-    private User seller;
-
+	// Getters and Setters
 	public Long getId() {
 		return id;
 	}
@@ -89,15 +66,6 @@ public class Computer {
 		this.description = description;
 	}
 
-	public boolean isNew() {
-		return isNew;
-	}
-
-	public void setNew(boolean isNew) {
-		this.isNew = isNew;
-	}
-
-	
 	public String getPhoto() {
 		return photo;
 	}
@@ -106,38 +74,12 @@ public class Computer {
 		this.photo = photo;
 	}
 
-	
-
 	public Long getRam() {
 		return ram;
 	}
 
 	public void setRam(Long ram) {
 		this.ram = ram;
-	}
-
-	public String getCpu() {
-		return cpu;
-	}
-
-	public void setCpu(String cpu) {
-		this.cpu = cpu;
-	}
-
-	public String getStorage() {
-		return storage;
-	}
-
-	public void setStorage(String storage) {
-		this.storage = storage;
-	}
-
-	public String getStorageType() {
-		return storageType;
-	}
-
-	public void setStorageType(String storageType) {
-		this.storageType = storageType;
 	}
 
 	public String getOs() {
@@ -148,14 +90,16 @@ public class Computer {
 		this.os = os;
 	}
 
-	public String getVideoCard() {
-		return videoCard;
+	public Long getRom() {
+		return rom;
 	}
 
-	public void setVideoCard(String videoCard) {
-		this.videoCard = videoCard;
+	public void setRom(Long rom) {
+		this.rom = rom;
 	}
 
+	public User getSeller() {
+		return seller;
+	}
 
-    
 }

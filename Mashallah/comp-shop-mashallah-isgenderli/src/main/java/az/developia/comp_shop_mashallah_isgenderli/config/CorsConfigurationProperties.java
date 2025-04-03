@@ -1,4 +1,4 @@
-package com.sahibindenal.loginsystem.config;
+package az.developia.comp_shop_mashallah_isgenderli.config;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -21,10 +21,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
-import static az.developia.comp_shop_mashallah_isgenderli.user.Permission.*;
-import static az.developia.comp_shop_mashallah_isgenderli.user.Role.ADMIN;
-import static az.developia.comp_shop_mashallah_isgenderli.user.Role.MANAGER;
-import static az.developia.comp_shop_mashallah_isgenderli.user.Role.USER;
+
 import static org.springframework.http.HttpMethod.*;
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
@@ -35,7 +32,6 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 public class SecurityConfiguration {
 
     private static final String[] WHITE_LIST_URL = {
-            "/api/v1/auth/**",
             "/v2/api-docs",
             "/v3/api-docs",
             "/v3/api-docs/**",
@@ -45,55 +41,21 @@ public class SecurityConfiguration {
             "/configuration/security",
             "/swagger-ui/**",
             "/webjars/**",
-            "/swagger-ui.html",
-            "/files/download/**"
+            "/swagger-ui.html"
     };
-
-
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
     private final LogoutHandler logoutHandler;
 
-
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(req ->
-                        req.requestMatchers(WHITE_LIST_URL).permitAll()
-                                .requestMatchers("/computers/{id}").permitAll()
-                                .requestMatchers("/files/download/{filename:.+}").permitAll()
-
-                                .requestMatchers("/computers/seller-computers").hasRole("USER")
-                                .requestMatchers("/computers/add").hasRole("USER")
-                                .requestMatchers("/computers/findAll").hasRole("USER")
-                                .requestMatchers("/computers/{id}").hasRole("USER")
-                                .requestMatchers("/computers/{id}").hasRole("USER")
-
-                                .requestMatchers("/files/upload").hasAnyRole("USER", "ADMIN")
-                                .anyRequest()
-                                .authenticated()
-                )
-                .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
-                .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .logout(logout -> logout.logoutUrl("/api/v1/auth/logout")
-                        .addLogoutHandler(logoutHandler)
-                        .logoutSuccessHandler((request, response, authentication) -> SecurityContextHolder.clearContext())
-                );
-
-
-        return http.build();
-    }
-
-    @Value("${application.cors.allowed-origins: http://localhost:3000,http://localhost:3030,http://localhost:8081")
+    @Value("${application.cors.allowed-origins: http://localhost:3000,http://localhost:3030,http://localhost:8081}")
     private List<String> allowedOrigins;
 
     @PostConstruct
     public void init() {
         System.out.println("Allowed Origins from application.yml: " + allowedOrigins);
     }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -105,5 +67,33 @@ public class SecurityConfiguration {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(AbstractHttpConfigurer::disable) //
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // CORS yapılandırması
+                .authorizeHttpRequests(req -> req
+                        .requestMatchers(WHITE_LIST_URL).permitAll()
+                        .requestMatchers("/computer/**").permitAll()
+                        .requestMatchers(GET, "/computer/seller-computers").hasRole("USER")
+                        .requestMatchers(POST, "/computer/add").hasRole("USER")
+                        .requestMatchers(GET, "/computer/**").permitAll()
+                        .requestMatchers(GET, "/computer/findById/{id}").hasRole("USER")
+                        .requestMatchers(PUT, "/computer/update/{id}").hasRole("ADMIN")
+                        .requestMatchers(DELETE, "/computer/deleteById/{id}").hasRole("ADMIN")
+                        .anyRequest().authenticated()
+                )
+                .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .logout(logout -> logout
+                        .logoutUrl("/auth/api/v1/logout")
+                        .addLogoutHandler(logoutHandler)
+                        .logoutSuccessHandler((request, response, authentication) -> SecurityContextHolder.clearContext())
+                );
+
+        return http.build();
     }
 }
